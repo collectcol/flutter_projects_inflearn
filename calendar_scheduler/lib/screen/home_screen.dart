@@ -52,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             todayDecoration: defaultBoxDecoration.copyWith(
-              color: primaryColor, 
+              color: primaryColor,
             ),
             outsideDecoration: defaultBoxDecoration.copyWith(
               color: Colors.transparent,
