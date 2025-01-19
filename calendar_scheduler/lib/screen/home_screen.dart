@@ -71,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
           selectedDayPredicate: (DateTime date) {
             if (selectedDay == null) {
               return false;
-            }
+            } 
 
             return date.isAtSameMomentAs(selectedDay!);
           },
