@@ -2,7 +2,10 @@ import 'package:calendar_scheduler/component/custom_text_field.dart';
 import 'package:calendar_scheduler/component/schedule_bottom_sheet.dart';
 import 'package:calendar_scheduler/component/schedule_card.dart';
 import 'package:calendar_scheduler/const/color.dart';
+import 'package:calendar_scheduler/database/drift.dart';
+import 'package:calendar_scheduler/model/schedule_with_category.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../component/calendar.dart';
@@ -23,38 +26,40 @@ class _HomeScreenState extends State<HomeScreen> {
     DateTime.now().day,
   );
 
-  Map<DateTime, List<Schedule>> schedules = {
-    DateTime.utc(2025, 1, 20): [
-      Schedule(
-        id: 1,
-        startTime: 11,
-        endTime: 12,
-        content: '플러터 공부하기',
-        date: DateTime.utc(2025, 1, 20),
-        color: categoryColors[0],
-        createdAt: DateTime.now().toUtc(),
-      ),
-      Schedule(
-        id: 2,
-        startTime: 13,
-        endTime: 14,
-        content: '집안일 하기',
-        date: DateTime.utc(2025, 1, 20),
-        color: categoryColors[1],
-        createdAt: DateTime.now().toUtc(),
-      ),
-    ]
-  };
+  // Map<DateTime, List<Schedule>> schedules = {
+  //   DateTime.utc(2025, 1, 20): [
+  //     Schedule(
+  //       id: 1,
+  //       startTime: 11,
+  //       endTime: 12,
+  //       content: '플러터 공부하기',
+  //       date: DateTime.utc(2025, 1, 20),
+  //       color: categoryColors[0],
+  //       createdAt: DateTime.now().toUtc(),
+  //     ),
+  //     Schedule(
+  //       id: 2,
+  //       startTime: 13,
+  //       endTime: 14,
+  //       content: '집안일 하기',
+  //       date: DateTime.utc(2025, 1, 20),
+  //       color: categoryColors[1],
+  //       createdAt: DateTime.now().toUtc(),
+  //     ),
+  //   ]
+  // };
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          showModalBottomSheet(
+        onPressed: () async {
+          await showModalBottomSheet<ScheduleTable>(
             context: context,
             builder: (_) {
-              return ScheduleBottomSheet();
+              return ScheduleBottomSheet(
+                selectedDay: selectedDay,
+              );
             },
           );
         },
@@ -83,53 +88,102 @@ class _HomeScreenState extends State<HomeScreen> {
                   right: 16.0,
                   top: 16.0,
                 ),
-                child: ListView.separated(
-                  // separated
-                  itemCount: schedules.containsKey(selectedDay)
-                      ? schedules[selectedDay]!.length
-                      : 0,
-                  itemBuilder: (BuildContext context, int index) {
-                    // 선택된 날짜에 해당되는 일정 리스트로 저장
-                    // List<Schedule>
-                    final selectedSchedules = schedules[selectedDay]!;
-                    final scheduleModel = selectedSchedules[index];
+                child: StreamBuilder<List<ScheduleWithCategory>>(
+                    stream: GetIt.I<AppDatabase>().streamSchedules(selectedDay),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text(
+                            snapshot.error.toString(),
+                          ),
+                        );
+                      }
 
-                    return ScheduleCard(
-                      startTime: scheduleModel.startTime,
-                      endTime: scheduleModel.endTime,
-                      content: scheduleModel.content,
-                      color: Color(
-                        int.parse(
-                          'FF${scheduleModel.color}',
-                          radix: 16,
-                        ),
-                      ),
-                    );
-                  },
+                      if (snapshot.data == null) {
+                        return Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
 
-                  separatorBuilder: (BuildContext context, int index) {
-                    return SizedBox(
-                      height: 8.0,
-                    );
-                  },
-                  // children: schedules.containsKey(selectedDay)
-                  //     ? schedules[selectedDay]!
-                  //         .map(
-                  //           (e) => ScheduleCard(
-                  //             startTime: e.startTime,
-                  //             endTime: e.endTime,
-                  //             content: e.content,
-                  //             color: Color(
-                  //               int.parse(
-                  //                 'FF${e.color}',
-                  //                 radix: 16,
-                  //               ),
-                  //             ),
-                  //           ),
-                  //         )
-                  //         .toList()
-                  //     : [],
-                ),
+                      final schedules = snapshot.data!;
+
+                      return ListView.separated(
+                        // separated
+                        itemCount: schedules.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          // 선택된 날짜에 해당되는 일정 리스트로 저장
+                          // List<Schedule>
+                          // final selectedSchedules = schedules[selectedDay]!;
+                          // final scheduleModel = selectedSchedules[index];
+
+                          final scheduleWithCategory = schedules[index];
+                          final schedule = scheduleWithCategory.schedule;
+                          final category = scheduleWithCategory.category;
+
+                          return Dismissible(
+                            key: ObjectKey(schedule.id),
+                            direction: DismissDirection.endToStart,
+                            // confirmDismiss: (DismissDirection direction) async {
+                            //   await GetIt.I<AppDatabase>()
+                            //       .removeSchedule(schedule.id);
+                            //
+                            //   return true;
+                            // },
+                            onDismissed: (DismissDirection direction) {
+                              GetIt.I<AppDatabase>()
+                                  .removeSchedule(schedule.id);
+                            },
+                            child: GestureDetector(
+                              onTap: () async {
+                                await showModalBottomSheet<ScheduleTable>(
+                                  context: context,
+                                  builder: (_) {
+                                    return ScheduleBottomSheet(
+                                      selectedDay: selectedDay,
+                                      id: schedule.id,
+                                    );
+                                  },
+                                );
+                              },
+                              child: ScheduleCard(
+                                startTime: schedule.startTime,
+                                endTime: schedule.endTime,
+                                content: schedule.content,
+                                color: Color(
+                                  int.parse(
+                                    'FF${category.color}',
+                                    radix: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+
+                        separatorBuilder: (BuildContext context, int index) {
+                          return SizedBox(
+                            height: 8.0,
+                          );
+                        },
+                        // children: schedules.containsKey(selectedDay)
+                        //     ? schedules[selectedDay]!
+                        //         .map(
+                        //           (e) => ScheduleCard(
+                        //             startTime: e.startTime,
+                        //             endTime: e.endTime,
+                        //             content: e.content,
+                        //             color: Color(
+                        //               int.parse(
+                        //                 'FF${e.color}',
+                        //                 radix: 16,
+                        //               ),
+                        //             ),
+                        //           ),
+                        //         )
+                        //         .toList()
+                        //     : [],
+                      );
+                    }),
               ),
             ),
           ],
