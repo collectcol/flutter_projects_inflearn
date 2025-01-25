@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:get_it/get_it.dart';
+import 'package:isar/isar.dart';
 
 import '../model/stat_model.dart';
 
@@ -31,7 +33,7 @@ class StatRepository {
     ];
 
     for (Map<String, dynamic> item in rawItemsList) {
-      final dateTime = item['dataTime'];
+      final dateTime = DateTime.parse(item['dataTime']);
 
       for (String key in item.keys) {
         if (skipKeys.contains(key)) continue;
@@ -39,17 +41,37 @@ class StatRepository {
         // 지역 - key
         final regionStr = key;
         // 해당 지역의 값 - value
-        final stat = item[regionStr];
+        final stat = double.parse(item[regionStr]);
+        final region = Region.values.firstWhere((e) => e.name == regionStr);
 
-        stats = [
-          ...stats,
-          StatModel(
-            region: Region.values.firstWhere((e) => e.name == regionStr),
-            stat: double.parse(stat),
-            dateTime: DateTime.parse(dateTime),
-            itemCode: itemCode,
-          ),
-        ];
+        final statModel = StatModel()
+          ..region = region
+          ..stat = stat
+          ..dateTime = dateTime
+          ..itemCode = itemCode;
+
+        final isar = GetIt.I<Isar>();
+
+        final count = await isar.statModels
+            .filter()
+            .regionEqualTo(region)
+            .dateTimeEqualTo(dateTime)
+            .itemCodeEqualTo(itemCode)
+            .count();
+
+        await isar.writeTxn(() async {
+          await isar.statModels.put(statModel);
+        });
+
+        // stats = [
+        //   ...stats,
+        //   StatModel(
+        //     region: Region.values.firstWhere((e) => e.name == regionStr),
+        //     stat: double.parse(stat),
+        //     dateTime: DateTime.parse(dateTime),
+        //     itemCode: itemCode,
+        //   ),
+        // ];
       }
     }
 

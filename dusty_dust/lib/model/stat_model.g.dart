@@ -105,16 +105,16 @@ StatModel _statModelDeserialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  final object = StatModel(
-    dateTime: reader.readDateTime(offsets[0]),
-    itemCode:
-        _StatModelitemCodeValueEnumMap[reader.readByteOrNull(offsets[1])] ??
-            ItemCode.SO2,
-    region: _StatModelregionValueEnumMap[reader.readByteOrNull(offsets[2])] ??
-        Region.daegu,
-    stat: reader.readDouble(offsets[3]),
-  );
+  final object = StatModel();
+  object.dateTime = reader.readDateTime(offsets[0]);
   object.id = id;
+  object.itemCode =
+      _StatModelitemCodeValueEnumMap[reader.readByteOrNull(offsets[1])] ??
+          ItemCode.SO2;
+  object.region =
+      _StatModelregionValueEnumMap[reader.readByteOrNull(offsets[2])] ??
+          Region.daegu;
+  object.stat = reader.readDouble(offsets[3]);
   return object;
 }
 
