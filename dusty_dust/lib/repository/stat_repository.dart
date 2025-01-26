@@ -5,10 +5,31 @@ import 'package:isar/isar.dart';
 import '../model/stat_model.dart';
 
 class StatRepository {
-  static Future<List<StatModel>> fetchData({
+  static Future<void> fetchData() async {
+    final isar = GetIt.I<Isar>();
+
+    final now = DateTime.now();
+    final compareDateTimeTarget = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+    );
+
+    final count = await isar.statModels.filter().dateTimeEqualTo(compareDateTimeTarget).count();
+
+    // if (count > 0) {
+    //   print('데이터가 존재합니다 : count : $count');
+    //   return;
+    // }
+
+    for (ItemCode itemCode in ItemCode.values) {
+      await fetchDataByItemCode(itemCode: itemCode);
+    }
+  }
+  static Future<List<StatModel>> fetchDataByItemCode({
     required ItemCode itemCode,
   }) async {
-    final itemCodeStr = itemCode == ItemCode.PM25 ? 'PM2.5' : itemCode.name;
     final response = await Dio().get(
         'http://apis.data.go.kr/B552584/ArpltnStatsSvc/getCtprvnMesureLIst',
         queryParameters: {
@@ -17,7 +38,7 @@ class StatRepository {
           'returnType': 'json',
           'numOfRows': 100,
           'pageNo': 1,
-          'itemCode': itemCodeStr,
+          'itemCode': itemCode.name,
           'dataGubun': 'HOUR',
           'searchCondition': 'WEEK',
         });
@@ -58,6 +79,10 @@ class StatRepository {
             .dateTimeEqualTo(dateTime)
             .itemCodeEqualTo(itemCode)
             .count();
+
+        if (count > 0) {
+          continue;
+        }
 
         await isar.writeTxn(() async {
           await isar.statModels.put(statModel);

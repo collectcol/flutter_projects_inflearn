@@ -81,10 +81,18 @@ class _HomeScreenState extends State<HomeScreen> {
     print(snapshot.connectionState); //  wating -> done 으로 바뀜
     print(snapshot.data);
 
-    // ConnectionState.none; -> Future 또는 Stream 이 입력되지 않은 상태
-    // ConnectionState.active; -> Stream 에서만 존재 / 스트림 아직 실행중
-    // ConnectionState.done; -> Future 또는 Stream 이 종료 됐을 때
-    // ConnectionState.waiting; -> 실행중
+    // Future:
+    //
+    // none: Future가 입력되지 않음 -> future 속성에 null 이 입력되어 있을 때
+    // waiting: Future 실행 중
+    // done: Future 완료
+    //
+    // Stream:
+    //
+    // none: Stream이 입력되지 않음 -> stream 속성에 null 이 입력되어 있을 때
+    // waiting: 첫 데이터 대기 중
+    // active: Stream 실행 중, 데이터 수신 중
+    // done: Stream 종료
 
     /// 상태를 가지고 분기처리가능
     if (snapshot.connectionState == ConnectionState.active || snapshot.connectionState == ConnectionState.waiting) {
