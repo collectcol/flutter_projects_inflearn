@@ -20,6 +20,11 @@ class _AppbarUsingControllerState extends State<AppbarUsingController>
       length: TABS.length,
       vsync: this, // TickerProviderStateMixin 을 가리킴
     );
+    tabController.addListener((){
+      setState(() {
+
+      });
+    });
   }
 
   @override
@@ -42,9 +47,43 @@ class _AppbarUsingControllerState extends State<AppbarUsingController>
       body: TabBarView(
         controller: tabController,
         children: TABS
-            .map((e) => Center(
-                  child: Icon(e.icon),
-                ))
+            .map(
+              (e) => Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    e.icon,
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (tabController.index != 0)
+                      ElevatedButton(
+                        onPressed: () {
+                          tabController.animateTo(
+                            tabController.index - 1,
+                          );
+                        },
+                        child: Text('이전'),
+                      ),
+                      const SizedBox(
+                        width: 16.0,
+                      ),
+                      if (tabController.index != TABS.length - 1)
+                      ElevatedButton(
+                        onPressed: () {
+                          tabController.animateTo(
+                            tabController.index + 1,
+                          );
+                        },
+                        child: Text('다음'),
+                      ),
+
+                    ],
+                  )
+                ],
+              ),
+            )
             .toList(),
       ),
     );
